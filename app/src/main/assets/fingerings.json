@@ -1,0 +1,25 @@
+{
+  "_help": [
+    "Fingering chart for a 12-hole ocarina in C. Edit freely.",
+    "Each note lists the holes that are OPEN (uncovered). Every other hole is covered.",
+    "Hole ids: L_INDEX L_MIDDLE L_RING L_PINKY L_SUB L_THUMB R_INDEX R_MIDDLE R_RING R_PINKY R_SUB R_THUMB",
+    "Notes use scientific pitch names; sharps as C#5, flats as Bb4. Add sharps/flats as new entries.",
+    "In the app: Settings > Fingerings > Import lets you load an edited copy without rebuilding."
+  ],
+  "instrument": "STL 12-hole tenor ocarina in C",
+  "notes": [
+    { "note": "A4",  "open": [] },
+    { "note": "B4",  "open": ["L_SUB"] },
+    { "note": "C5",  "open": ["L_SUB", "R_SUB"] },
+    { "note": "D5",  "open": ["L_SUB", "R_SUB", "R_PINKY"] },
+    { "note": "E5",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING"] },
+    { "note": "F5",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE"] },
+    { "note": "G5",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE", "R_INDEX"] },
+    { "note": "A5",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE", "R_INDEX", "L_RING"] },
+    { "note": "B5",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE", "R_INDEX", "L_RING", "L_MIDDLE"] },
+    { "note": "C6",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE", "R_INDEX", "L_RING", "L_MIDDLE", "L_INDEX"] },
+    { "note": "D6",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE", "R_INDEX", "L_RING", "L_MIDDLE", "L_INDEX", "L_THUMB"] },
+    { "note": "E6",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE", "R_INDEX", "L_RING", "L_MIDDLE", "L_INDEX", "L_THUMB", "R_THUMB"] },
+    { "note": "F6",  "open": ["L_SUB", "R_SUB", "R_PINKY", "R_RING", "R_MIDDLE", "R_INDEX", "L_RING", "L_MIDDLE", "L_INDEX", "L_THUMB", "R_THUMB", "L_PINKY"] }
+  ]
+}
