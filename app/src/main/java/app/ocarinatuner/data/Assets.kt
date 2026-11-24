@@ -52,7 +52,10 @@ class Assets(private val context: Context) {
         val user: Boolean = false,
         /** Hole positions before any adjustment in the editor ("Reset" goes back to these). */
         val defaultHoles: Map<String, HolePos> = skin.holes,
-    )
+    ) {
+        /** Unique per skin. Bundled skins all share one asset folder, so [dir] alone is not. */
+        val key: String get() = "$dir/${skin.id}"
+    }
 
     private val holeOverrideRoot get() = File(context.filesDir, "skin_holes").apply { mkdirs() }
     private val holesSerializer = MapSerializer(String.serializer(), HolePos.serializer())

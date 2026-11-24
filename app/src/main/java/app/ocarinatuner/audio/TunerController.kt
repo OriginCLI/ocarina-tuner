@@ -185,15 +185,15 @@ class TunerController(context: Context) {
 
     fun updateSkinHoles(e: Assets.SkinEntry) {
         if (!e.user && e.skin.holes == e.defaultHoles) assets.clearHoleOverride(e) else assets.saveSkinHoles(e)
-        val i = skins.indexOfFirst { it.dir == e.dir }
+        val i = skins.indexOfFirst { it.key == e.key }
         if (i >= 0) skins[i] = e
-        if (skin?.dir == e.dir) skin = e
+        if (skin?.key == e.key) skin = e
     }
 
     fun deleteUserSkin(e: Assets.SkinEntry) {
         assets.deleteUserSkin(e)
-        skins.removeAll { it.dir == e.dir }
-        if (skin?.dir == e.dir) skins.firstOrNull()?.let { selectSkin(it) }
+        skins.removeAll { it.key == e.key }
+        if (skin?.key == e.key) skins.firstOrNull()?.let { selectSkin(it) }
     }
 
     fun reloadFingerings() { chart = assets.loadFingerings() }

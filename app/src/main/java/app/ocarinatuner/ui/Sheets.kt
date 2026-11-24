@@ -226,8 +226,8 @@ fun SkinSheet(c: TunerController, onDismiss: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             LazyVerticalGrid(GridCells.Fixed(2), Modifier.height(460.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(c.skins, key = { it.dir + it.skin.id }) { e ->
-                    SkinTile(c, e, selected = c.skin?.dir == e.dir && c.skin?.skin?.id == e.skin.id,
+                items(c.skins, key = { it.key }) { e ->
+                    SkinTile(c, e, selected = c.skin?.key == e.key,
                         onClick = { c.selectSkin(e) }, onEdit = { editing = e })
                 }
                 item {
