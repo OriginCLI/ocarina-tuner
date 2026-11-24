@@ -72,7 +72,14 @@ class Assets(private val context: Context) {
      * then fine-tune hole positions in the editor. Stays on this device.
      */
     fun importSkin(uri: Uri, name: String): SkinEntry {
-        val src = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+        // Read the size first and subsample huge pictures so decoding can't exhaust memory.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw IllegalArgumentException("Couldn't read that image")
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= 1200 && bounds.outHeight / (sample * 2) >= 300) sample *= 2
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        val src = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
             ?: throw IllegalArgumentException("Couldn't read that image")
         val cropped = cropToOpaque(src)
         val scale = 1200f / cropped.width
