@@ -39,7 +39,7 @@ A broken file is rejected with a message and the built-in chart stays in use.
 
 ## Skins
 
-Five skins are bundled (`app/src/main/assets/skins/`, default *Great Wave*). More are in
+Five skins are bundled (`app/src/main/assets/skins/`: Golden Clouds (default), Great Wave, Sakura, Royal Crest, Forest Ivy). More are in
 `extra-skins/`: copy one to your phone and use *Skins (palette button) > Import your own*.
 
 To make your own: a hole-free, top-down picture of the ocarina, wide end left, mouthpiece at the

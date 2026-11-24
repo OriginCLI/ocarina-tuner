@@ -1,6 +1,66 @@
 {
   "skins": [
     {
+      "id": "golden_clouds",
+      "name": "Golden Clouds",
+      "image": "golden_clouds.webp",
+      "aspect": 1.8721,
+      "group": "bundled",
+      "holes": {
+        "L_PINKY": {
+          "x": 0.095,
+          "y": 0.5249,
+          "r": 0.03
+        },
+        "L_RING": {
+          "x": 0.185,
+          "y": 0.2625,
+          "r": 0.05
+        },
+        "L_MIDDLE": {
+          "x": 0.295,
+          "y": 0.2278,
+          "r": 0.054
+        },
+        "L_INDEX": {
+          "x": 0.405,
+          "y": 0.2568,
+          "r": 0.05
+        },
+        "L_SUB": {
+          "x": 0.3,
+          "y": 0.4278,
+          "r": 0.024
+        },
+        "R_INDEX": {
+          "x": 0.52,
+          "y": 0.3045,
+          "r": 0.048
+        },
+        "R_MIDDLE": {
+          "x": 0.63,
+          "y": 0.3472,
+          "r": 0.044
+        },
+        "R_RING": {
+          "x": 0.735,
+          "y": 0.3787,
+          "r": 0.038
+        },
+        "R_PINKY": {
+          "x": 0.835,
+          "y": 0.4087,
+          "r": 0.03
+        },
+        "R_SUB": {
+          "x": 0.635,
+          "y": 0.5204,
+          "r": 0.022
+        }
+      },
+      "order": 0
+    },
+    {
       "id": "great_wave",
       "name": "Great Wave",
       "image": "great_wave.webp",
@@ -58,7 +118,7 @@
           "r": 0.022
         }
       },
-      "order": 0
+      "order": 1
     },
     {
       "id": "sakura",
@@ -118,189 +178,129 @@
           "r": 0.022
         }
       },
-      "order": 1
-    },
-    {
-      "id": "koi_pond",
-      "name": "Koi Pond",
-      "image": "koi_pond.webp",
-      "aspect": 1.8663,
-      "group": "bundled",
-      "holes": {
-        "L_PINKY": {
-          "x": 0.095,
-          "y": 0.5169,
-          "r": 0.03
-        },
-        "L_RING": {
-          "x": 0.185,
-          "y": 0.2578,
-          "r": 0.05
-        },
-        "L_MIDDLE": {
-          "x": 0.295,
-          "y": 0.2278,
-          "r": 0.054
-        },
-        "L_INDEX": {
-          "x": 0.405,
-          "y": 0.2567,
-          "r": 0.05
-        },
-        "L_SUB": {
-          "x": 0.3,
-          "y": 0.4278,
-          "r": 0.024
-        },
-        "R_INDEX": {
-          "x": 0.52,
-          "y": 0.3026,
-          "r": 0.048
-        },
-        "R_MIDDLE": {
-          "x": 0.63,
-          "y": 0.3452,
-          "r": 0.044
-        },
-        "R_RING": {
-          "x": 0.735,
-          "y": 0.3781,
-          "r": 0.038
-        },
-        "R_PINKY": {
-          "x": 0.835,
-          "y": 0.4047,
-          "r": 0.03
-        },
-        "R_SUB": {
-          "x": 0.635,
-          "y": 0.5183,
-          "r": 0.022
-        }
-      },
       "order": 2
     },
     {
-      "id": "moonlit_waves",
-      "name": "Moonlit Waves",
-      "image": "moonlit_waves.webp",
-      "aspect": 1.8868,
+      "id": "royal_crest_ivory",
+      "name": "Royal Crest",
+      "image": "royal_crest_ivory.webp",
+      "aspect": 1.8838,
       "group": "bundled",
       "holes": {
         "L_PINKY": {
           "x": 0.095,
-          "y": 0.5239,
+          "y": 0.5159,
           "r": 0.03
         },
         "L_RING": {
           "x": 0.185,
-          "y": 0.261,
+          "y": 0.2626,
           "r": 0.05
         },
         "L_MIDDLE": {
           "x": 0.295,
-          "y": 0.2263,
+          "y": 0.2231,
           "r": 0.054
         },
         "L_INDEX": {
           "x": 0.405,
-          "y": 0.2525,
+          "y": 0.2367,
           "r": 0.05
         },
         "L_SUB": {
           "x": 0.3,
-          "y": 0.4263,
+          "y": 0.4231,
           "r": 0.024
         },
         "R_INDEX": {
           "x": 0.52,
-          "y": 0.2943,
+          "y": 0.2644,
           "r": 0.048
         },
         "R_MIDDLE": {
           "x": 0.63,
-          "y": 0.3344,
+          "y": 0.287,
           "r": 0.044
         },
         "R_RING": {
           "x": 0.735,
-          "y": 0.3663,
+          "y": 0.3016,
           "r": 0.038
         },
         "R_PINKY": {
           "x": 0.835,
-          "y": 0.3934,
+          "y": 0.3161,
           "r": 0.03
         },
         "R_SUB": {
           "x": 0.635,
-          "y": 0.5075,
+          "y": 0.4586,
           "r": 0.022
         }
       },
       "order": 3
     },
     {
-      "id": "fox_sakura_night",
-      "name": "Fox & Sakura",
-      "image": "fox_sakura_night.webp",
-      "aspect": 1.9293,
+      "id": "forest_ivy",
+      "name": "Forest Ivy",
+      "image": "forest_ivy.webp",
+      "aspect": 1.99,
       "group": "bundled",
       "holes": {
         "L_PINKY": {
           "x": 0.095,
-          "y": 0.5256,
+          "y": 0.5263,
           "r": 0.03
         },
         "L_RING": {
           "x": 0.185,
-          "y": 0.2629,
+          "y": 0.2633,
           "r": 0.05
         },
         "L_MIDDLE": {
           "x": 0.295,
-          "y": 0.2232,
+          "y": 0.2233,
           "r": 0.054
         },
         "L_INDEX": {
           "x": 0.405,
-          "y": 0.2438,
+          "y": 0.2365,
           "r": 0.05
         },
         "L_SUB": {
           "x": 0.3,
-          "y": 0.4248,
+          "y": 0.4233,
           "r": 0.024
         },
         "R_INDEX": {
           "x": 0.52,
-          "y": 0.2836,
+          "y": 0.2713,
           "r": 0.048
         },
         "R_MIDDLE": {
           "x": 0.63,
-          "y": 0.3233,
+          "y": 0.3061,
           "r": 0.044
         },
         "R_RING": {
           "x": 0.735,
-          "y": 0.3515,
+          "y": 0.3325,
           "r": 0.038
         },
         "R_PINKY": {
           "x": 0.835,
-          "y": 0.3765,
+          "y": 0.3573,
           "r": 0.03
         },
         "R_SUB": {
           "x": 0.635,
-          "y": 0.4949,
+          "y": 0.4777,
           "r": 0.022
         }
       },
       "order": 4
     }
   ],
-  "default": "great_wave",
+  "default": "golden_clouds",
   "_comment": "Hole x/y/r are fractions of the image (r is a fraction of image height). Edit freely; tools/prepare_skins.py regenerates them."
 }
