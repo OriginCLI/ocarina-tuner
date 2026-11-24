@@ -16,6 +16,7 @@
 #include <mutex>
 #include <vector>
 #include "PitchDetector.h"
+#include "TestTone.h"
 
 namespace ocarina {
 
@@ -75,6 +76,9 @@ public:
         gateClarity_.store(minClarity);
     }
 
+    // Debug only: replace the mic with a synthetic tone. hz <= 0 turns it off.
+    void setTestTone(float hz, float dbfs) { testTone_.set(hz, dbfs); }
+
     int drain(PitchFrame *out, int max) { return ring_.pop(out, max); }
     void stats(double *out);
 
@@ -91,6 +95,8 @@ private:
     std::unique_ptr<PitchDetector> detector_;
     Median3 median_;
     FrameRing ring_;
+    TestTone testTone_;
+    int sampleRate_ = 48000;
 
     // Double-written ring so the latest `window_` samples are always contiguous.
     std::vector<float> history_;

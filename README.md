@@ -78,3 +78,16 @@ tell you the true number.
 - `tests/dsp/` desktop tests for the pitch detector: `cmake -S tests/dsp -B build && cmake --build build && ./build/dsp_tests`
 
 Build locally with Android Studio or `./gradlew :app:assembleRelease`.
+
+## Testing without a microphone
+
+Debug builds (`./gradlew :app:assembleDebug`) accept a test tone over adb, which replaces the
+mic input. This is handy on an emulator:
+
+```
+adb shell am broadcast -a app.ocarinatuner.TEST_TONE -p app.ocarinatuner --es note A4
+adb shell am broadcast -a app.ocarinatuner.TEST_TONE -p app.ocarinatuner --es note C5 --ef cents -12 --ef db -40
+adb shell am broadcast -a app.ocarinatuner.TEST_TONE -p app.ocarinatuner --es note off
+```
+
+`db` is the RMS level in dBFS (default -20). Release builds don't include this.
