@@ -27,6 +27,7 @@ fun CentsGauge(
     voiced: () -> Boolean,
     tolerance: () -> Float,
     modifier: Modifier = Modifier,
+    held: () -> Boolean = { false },
 ) {
     val measurer = rememberTextMeasurer()
     val labelStyle = remember { TextStyle(color = Palette.TextDim, fontSize = 14.sp, fontFeatureSettings = "tnum") }
@@ -37,6 +38,7 @@ fun CentsGauge(
         val center = Offset(size.width / 2, radius + size.height * 0.06f)
         val c = cents()
         val on = voiced()
+        val showHeld = !on && held()
         val tol = tolerance()
         val color = Palette.forCents(c, tol)
 
@@ -62,7 +64,12 @@ fun CentsGauge(
                 strokeWidth = if (major) 3.dp.toPx() else 2.dp.toPx(), cap = StrokeCap.Round)
         }
 
-        // Current-offset marker with a soft glow.
+        // Current-offset marker with a soft glow (faint when holding the last note).
+        if (showHeld) {
+            val ang = angleOf(c.coerceIn(-50f, 50f))
+            drawLine(color.copy(alpha = 0.35f), point(ang, radius - 40.dp.toPx()), point(ang, radius + 8.dp.toPx()),
+                strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
+        }
         if (on) {
             val ang = angleOf(c.coerceIn(-50f, 50f))
             val a = point(ang, radius - 40.dp.toPx())

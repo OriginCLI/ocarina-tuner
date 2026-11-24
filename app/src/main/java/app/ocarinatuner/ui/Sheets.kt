@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -227,7 +228,7 @@ fun SkinSheet(c: TunerController, onDismiss: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(c.skins, key = { it.dir + it.skin.id }) { e ->
                     SkinTile(c, e, selected = c.skin?.dir == e.dir && c.skin?.skin?.id == e.skin.id,
-                        onClick = { c.selectSkin(e) }, onEdit = if (e.user) ({ editing = e }) else null)
+                        onClick = { c.selectSkin(e) }, onEdit = { editing = e })
                 }
                 item {
                     val shape = RoundedCornerShape(16.dp)
@@ -278,8 +279,10 @@ private fun SkinTile(c: TunerController, e: Assets.SkinEntry, selected: Boolean,
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(e.skin.name, color = Palette.Text, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
-            if (onEdit != null) Icon(Icons.Outlined.Edit, "Edit holes", tint = Palette.TextDim,
-                modifier = Modifier.size(18.dp).clickable(onClick = onEdit))
+            if (onEdit != null) Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onEdit),
+                contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Edit, "Adjust holes", tint = Palette.TextDim, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }
@@ -288,7 +291,7 @@ private fun SkinTile(c: TunerController, e: Assets.SkinEntry, selected: Boolean,
 @Composable
 fun SkinEditor(c: TunerController, entry: Assets.SkinEntry, onClose: () -> Unit) {
     val holes = remember(entry) { mutableStateMapOf<String, HolePos>().apply { putAll(entry.skin.holes) } }
-    val original = remember(entry) { entry.skin.holes }
+    val original = remember(entry) { entry.defaultHoles }
     var sizeScale by remember(entry) { mutableFloatStateOf(1f) }
     var dragging by remember { mutableStateOf<String?>(null) }
     val bmp = rememberSkinBitmap(c.assets, entry)
@@ -296,7 +299,7 @@ fun SkinEditor(c: TunerController, entry: Assets.SkinEntry, onClose: () -> Unit)
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
             Text("Line up the holes", color = Palette.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Drag each circle onto its hole position. Purple = top holes, small ones = subholes and pinkies.",
+            Text("Drag each circle to where that hole is on your ocarina. Reset puts them back.",
                 color = Palette.TextDim, fontSize = 13.sp)
             Spacer(Modifier.height(16.dp))
             Canvas(
@@ -339,12 +342,12 @@ fun SkinEditor(c: TunerController, entry: Assets.SkinEntry, onClose: () -> Unit)
             Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { holes.clear(); holes.putAll(original); sizeScale = 1f }) { Text("Reset") }
-                TextButton(onClick = { c.deleteUserSkin(entry); onClose() }) { Text("Delete", color = Palette.Sharp) }
+                if (entry.user) TextButton(onClick = { c.deleteUserSkin(entry); onClose() }) { Text("Delete", color = Palette.Sharp) }
                 Spacer(Modifier.weight(1f))
                 OutlinedButton(onClick = onClose) { Text("Cancel") }
                 Button(onClick = {
                     val scaled = holes.mapValues { (_, h) -> h.copy(r = h.r * sizeScale) }
-                    c.updateUserSkin(entry.copy(skin = entry.skin.copy(holes = scaled)))
+                    c.updateSkinHoles(entry.copy(skin = entry.skin.copy(holes = scaled)))
                     onClose()
                 }, colors = ButtonDefaults.buttonColors(containerColor = Palette.Accent)) { Text("Save") }
             }
@@ -356,17 +359,41 @@ fun SkinEditor(c: TunerController, entry: Assets.SkinEntry, onClose: () -> Unit)
 
 @Composable
 fun DebugOverlay(c: TunerController, modifier: Modifier) {
+    var expanded by remember { mutableStateOf(false) }
     val s = c.stats
-    val shape = RoundedCornerShape(10.dp)
+    val total = c.estimatedLatencyMs
+    val totalColor = if (total == null) Color.White else if (total < 50) Palette.InTune else Palette.Sharp
+    val shape = RoundedCornerShape(12.dp)
+    if (!expanded) {
+        // Collapsed: a small chip with the latency estimate. Tap to see details, × to hide.
+        Row(
+            modifier.clip(shape).background(Color(0xE0000000)).border(1.dp, Palette.Stroke, shape)
+                .clickable { expanded = true }.padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("latency ", color = Color(0xFF9A9A9A), fontSize = 11.sp)
+            Text(total?.let { "≈${f1(it)} ms" } ?: "…", color = totalColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Box(Modifier.size(28.dp).clickable { c.updateShowDebug(false) }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Close, "Hide debug", tint = Color(0xFF9A9A9A), modifier = Modifier.size(16.dp))
+            }
+        }
+        return
+    }
     Column(
-        modifier.width(200.dp).clip(shape).background(Color(0xE0000000)).border(1.dp, Palette.Stroke, shape).padding(8.dp),
+        modifier.width(220.dp).clip(shape).background(Color(0xF0000000)).border(1.dp, Palette.Stroke, shape)
+            .clickable { expanded = false }.padding(10.dp),
     ) {
         @Composable
         fun line(k: String, v: String, color: Color = Color(0xFFE0E0E0)) = Row {
             Text(k, color = Color(0xFF9A9A9A), fontSize = 11.sp, modifier = Modifier.weight(1f))
             Text(v, color = color, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         }
-        Text("DEBUG", color = Palette.Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("DEBUG · tap to shrink", color = Palette.Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Box(Modifier.size(28.dp).clickable { c.updateShowDebug(false) }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Close, "Hide debug", tint = Color(0xFF9A9A9A), modifier = Modifier.size(16.dp))
+            }
+        }
         if (s == null || s.sampleRate == 0) { line("engine", if (c.running) "starting" else "stopped"); return@Column }
         line("api", "${s.api}${if (s.exclusive) " excl" else " shared"}")
         line("input preset", s.preset)
@@ -380,9 +407,7 @@ fun DebugOverlay(c: TunerController, modifier: Modifier) {
         line("display frame", "${f1(c.frameIntervalMs.toDouble())} ms (${if (c.frameIntervalMs > 0) (1000 / c.frameIntervalMs).roundToInt() else 0} Hz)")
         line("frames/draw", "${c.framesPerDisplay}")
         line("xruns / dropped", "${s.xruns} / ${s.dropped}")
-        val total = c.estimatedLatencyMs
-        line("sound→screen ≈", total?.let { "${f1(it)} ms" } ?: "n/a",
-            if (total == null) Color.White else if (total < 50) Palette.InTune else Palette.Sharp)
+        line("sound→screen ≈", total?.let { "${f1(it)} ms" } ?: "n/a", totalColor)
     }
 }
 

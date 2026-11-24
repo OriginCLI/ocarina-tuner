@@ -44,7 +44,10 @@ class TunerController(context: Context) {
     var startError by mutableStateOf<Int?>(null); private set
 
     // ---- live reading ----
+    /** True while a note is sounding right now. */
     var voiced by mutableStateOf(false); private set
+    /** True once any note has been heard; the last note stays on screen after it stops. */
+    var hasReading by mutableStateOf(false); private set
     var midi by mutableIntStateOf(69); private set
     var cents by mutableFloatStateOf(0f); private set
     var hz by mutableFloatStateOf(0f); private set
@@ -54,8 +57,11 @@ class TunerController(context: Context) {
     var frameTick by mutableLongStateOf(0L); private set
     val history = PitchHistory(4096)
 
-    /** Note shown by the fingering stepper when nothing is sounding. */
-    var stepperMidi by mutableIntStateOf(69)
+    /**
+     * Note whose fingering is shown (ocarina + stepper). Follows what you play; the stepper
+     * arrows browse from there. May be a note with no fingering in the chart.
+     */
+    var shownMidi by mutableIntStateOf(69)
 
     // ---- attack check ----
     private var attackDetector = AttackDetector(a4.toDouble())
@@ -132,8 +138,9 @@ class TunerController(context: Context) {
                 cents = ((m - note) * 100).toFloat()
                 hz = f
                 voiced = true
+                hasReading = true
                 lastVoicedNs = latestAnalysisNs
-                stepperMidi = chart.forMidi(note)?.midi ?: stepperMidi
+                shownMidi = note
             } else if (voiced && latestAnalysisNs - lastVoicedNs > 60_000_000L) {
                 // Short hold (60 ms) bridges single gated frames without delaying new notes.
                 voiced = false
@@ -176,8 +183,8 @@ class TunerController(context: Context) {
         return e
     }
 
-    fun updateUserSkin(e: Assets.SkinEntry) {
-        assets.saveUserSkin(e)
+    fun updateSkinHoles(e: Assets.SkinEntry) {
+        if (!e.user && e.skin.holes == e.defaultHoles) assets.clearHoleOverride(e) else assets.saveSkinHoles(e)
         val i = skins.indexOfFirst { it.dir == e.dir }
         if (i >= 0) skins[i] = e
         if (skin?.dir == e.dir) skin = e
@@ -207,7 +214,9 @@ class TunerController(context: Context) {
 
     fun clearAttacks() = attacks.clear()
 
-    val fingering get() = chart.forMidi(if (voiced) midi else stepperMidi)
+    val fingering get() = chart.forMidi(shownMidi)
+
+    fun stepFingering(delta: Int) { shownMidi = chart.step(shownMidi, delta) }
     val estimatedLatencyMs: Double?
         get() {
             val s = stats ?: return null

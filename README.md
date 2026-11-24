@@ -45,7 +45,12 @@ Five skins are bundled (`app/src/main/assets/skins/`: Golden Clouds (default), G
 To make your own: a hole-free, top-down picture of the ocarina, wide end left, mouthpiece at the
 lower left, transparent background (PNG). On import the app crops it, places the 12 holes by
 following the outline, and opens an editor where you drag holes into place. Imported skins stay
-on that phone.
+on that phone. The pencil on any skin (bundled ones too) opens the same editor; adjustments are
+saved on the phone and *Reset* restores the default layout.
+
+The default layout (`tools/prepare_skins.py` and `HoleLayout` in `core`) was measured from a photo
+of an STL 12-hole: left-hand holes along the far side of the wide end, right-hand holes along the
+near side toward the tip, subholes between the rows.
 
 To bundle a new skin in the APK: `python3 tools/prepare_skins.py SRC_DIR app/src/main/assets/skins`
 (`SRC_DIR` holds `<id>.png` files), then add/adjust its `order` in `skins.json`.

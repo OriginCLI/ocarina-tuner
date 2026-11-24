@@ -25,23 +25,27 @@ from PIL import Image, ImageDraw
 
 TARGET_WIDTH = 1200
 
-# Hole layout for a 12-hole ocarina, top-down, wide end (left hand) on the left,
-# mouthpiece at the lower left.
+# Hole layout for a 12-hole ocarina, seen from above by the player: wide end (left hand) on
+# the left, mouthpiece at the lower left pointing at the player. Measured from a photo of
+# Keean's STL 12-hole: the left-hand holes run along the far (upper) side of the wide end,
+# the right-hand holes along the near (lower) side toward the tip, and both subholes sit
+# between the rows, by the middle/ring fingers.
 #   u: position along the body, 0 = left end, 1 = tip
-#   d: distance below the top edge of the silhouette at that u, in units of image height
+#   v: position across the body at that u, 0 = far (top) edge, 1 = near (bottom) edge,
+#      measured on the body only (the mouthpiece is ignored)
 #   r: radius in units of image height
 # Thumb holes are on the back and are drawn by the app beside the body, not here.
 LAYOUT = {
-    "L_PINKY":  dict(u=0.095, d=0.45, r=0.030),
-    "L_RING":   dict(u=0.185, d=0.25, r=0.050),
-    "L_MIDDLE": dict(u=0.295, d=0.22, r=0.054),
-    "L_INDEX":  dict(u=0.405, d=0.21, r=0.050),
-    "L_SUB":    dict(u=0.300, d=0.42, r=0.024),
-    "R_INDEX":  dict(u=0.520, d=0.20, r=0.048),
-    "R_MIDDLE": dict(u=0.630, d=0.185, r=0.044),
-    "R_RING":   dict(u=0.735, d=0.165, r=0.038),
-    "R_PINKY":  dict(u=0.835, d=0.145, r=0.030),
-    "R_SUB":    dict(u=0.635, d=0.355, r=0.022),
+    "L_PINKY":  dict(u=0.075, v=0.36, r=0.040),
+    "L_RING":   dict(u=0.170, v=0.32, r=0.054),
+    "L_MIDDLE": dict(u=0.290, v=0.33, r=0.056),
+    "L_INDEX":  dict(u=0.420, v=0.24, r=0.054),
+    "L_SUB":    dict(u=0.170, v=0.53, r=0.024),
+    "R_INDEX":  dict(u=0.455, v=0.78, r=0.050),
+    "R_MIDDLE": dict(u=0.585, v=0.70, r=0.036),
+    "R_RING":   dict(u=0.710, v=0.64, r=0.042),
+    "R_PINKY":  dict(u=0.845, v=0.60, r=0.030),
+    "R_SUB":    dict(u=0.580, v=0.47, r=0.022),
 }
 
 
@@ -64,26 +68,49 @@ def process(path: str):
     return im
 
 
-def place_holes(im: Image.Image):
-    alpha = np.array(im)[..., 3] > 128
+def body_edges(alpha: np.ndarray):
+    """Top and bottom edge of the body per column, with the mouthpiece bridged over.
+
+    The mouthpiece hangs below the body near the left end. Columns where the silhouette
+    reaches far down are treated as mouthpiece (plus a margin for the flare) and the body's
+    lower edge is interpolated straight across them.
+    """
     H, W = alpha.shape
-    tops = np.full(W, H, dtype=float)
+    top = np.full(W, np.nan)
+    bot = np.full(W, np.nan)
     for x in range(W):
         ys = np.nonzero(alpha[:, x])[0]
         if len(ys):
-            tops[x] = ys[0]
+            top[x], bot[x] = ys[0], ys[-1]
+    deep = np.nonzero(bot > 0.80 * H)[0]
+    body_bot = bot.copy()
+    if len(deep):
+        a = max(0, int(deep.min() - 0.06 * W))
+        b = min(W - 1, int(deep.max() + 0.08 * W))
+        # Left anchor: if the margin runs off the image, use the lowest body point left of it.
+        ya = bot[a] if a > 0 else np.nanmin(bot[: max(1, int(deep.min()))])
+        yb = bot[b]
+        for x in range(a, b + 1):
+            t = (x - a) / max(1, b - a)
+            body_bot[x] = ya + (yb - ya) * t
+    return top, body_bot
+
+
+def place_holes(im: Image.Image):
+    alpha = np.array(im)[..., 3] > 128
+    H, W = alpha.shape
+    top, bot = body_edges(alpha)
     holes = {}
     problems = []
     for hid, p in LAYOUT.items():
         x = p["u"] * W
         xi = int(round(x))
-        # Average the top edge over a small span to ignore glaze highlights at the rim.
-        span = tops[max(0, xi - 6): xi + 7]
-        top = float(np.median(span))
-        y = top + p["d"] * H
+        lo, hi = max(0, xi - 6), min(W, xi + 7)
+        t = float(np.nanmedian(top[lo:hi]))
+        b = float(np.nanmedian(bot[lo:hi]))
+        y = t + p["v"] * (b - t)
         r = p["r"] * H
-        # Check the hole (plus a small margin) sits fully on the body.
-        margin = r * 1.25
+        margin = r * 1.15
         inside = True
         for ang in np.linspace(0, 2 * np.pi, 24, endpoint=False):
             px = int(round(x + margin * np.cos(ang)))

@@ -19,8 +19,8 @@ class Prefs(context: Context) {
         set(v) = sp.edit().putFloat("tolerance", v).apply()
 
     var showDebug: Boolean
-        get() = sp.getBoolean("showDebug", true)
-        set(v) = sp.edit().putBoolean("showDebug", v).apply()
+        get() = sp.getBoolean("debugOverlay", false)
+        set(v) = sp.edit().putBoolean("debugOverlay", v).apply()
 
     var skinId: String?
         get() = sp.getString("skin", null)

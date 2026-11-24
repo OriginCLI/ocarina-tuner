@@ -50,6 +50,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.ocarinatuner.audio.TunerController
@@ -100,7 +102,8 @@ fun OcarinaApp(
             }
             BottomBar(tab) { tab = it }
         }
-        if (c.showDebug) DebugOverlay(c, Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 64.dp, end = 8.dp))
+        // Bottom-left, above the tab bar, so it never covers the note. Tap to expand/collapse.
+        if (c.showDebug) DebugOverlay(c, Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(start = 10.dp, bottom = 96.dp))
     }
 
     if (showSettings) SettingsSheet(c, updater) { showSettings = false }
@@ -116,11 +119,14 @@ private fun Header(onSettings: () -> Unit, onSkins: () -> Unit) {
         OcarinaGlyph(Modifier.size(width = 46.dp, height = 30.dp))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text("Ocarina Trainer", color = Palette.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("Tuner • Breath Control • Practice", color = Palette.TextDim, fontSize = 13.sp)
+            Text("Ocarina Trainer", color = Palette.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("Tuner • Breath • Practice", color = Palette.TextDim, fontSize = 12.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        Spacer(Modifier.width(8.dp))
         HeaderButton(Icons.Outlined.Settings, onSettings)
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(8.dp))
         HeaderButton(Icons.Outlined.Palette, onSkins)
     }
 }
