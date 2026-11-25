@@ -118,6 +118,7 @@ class TunerController(context: Context) {
         framesPerDisplay = n
         if (n > 0) {
             val a = a4.toDouble()
+            var newestVoicedHz = Float.NaN
             for (i in 0 until n) {
                 val t = NativeEngine.times[i]
                 val f = NativeEngine.hz[i]
@@ -127,6 +128,7 @@ class TunerController(context: Context) {
                 if (!f.isNaN()) {
                     hold.add(t, md)
                     lastVoicedNs = t
+                    newestVoicedHz = f
                 }
                 attackDetector.feed(t, f)?.let {
                     attacks.add(0, it)
@@ -138,10 +140,10 @@ class TunerController(context: Context) {
             if (longTone != null || scale != null) drillTick++
 
             val last = n - 1
-            val f = NativeEngine.hz[last]
             latestAnalysisNs = NativeEngine.times[last]
             level = NativeEngine.rmsDb[last]
-            if (!f.isNaN()) {
+            val f = newestVoicedHz
+            if (!f.isNaN() && latestAnalysisNs - lastVoicedNs <= HOLD_NS) {
                 val m = Music.midiOf(f.toDouble(), a)
                 val note = m.roundToInt()
                 midi = note
@@ -150,8 +152,10 @@ class TunerController(context: Context) {
                 voiced = true
                 hasReading = true
                 shownMidi = note
-            } else if (voiced && latestAnalysisNs - lastVoicedNs > HOLD_NS) {
+            } else if (hold.pending && latestAnalysisNs - lastVoicedNs > HOLD_NS) {
                 // Short hold (60 ms) bridges single gated frames without delaying new notes.
+                // Checking the hold (not just `voiced`) also catches a whole note that started
+                // and ended between two drawn frames, e.g. while the UI was stalled.
                 voiced = false
                 holdLastNote()
             }
@@ -171,6 +175,7 @@ class TunerController(context: Context) {
     private fun holdLastNote() {
         val mf = hold.release()
         if (mf.isNaN()) return
+        hasReading = true
         val note = mf.roundToInt()
         midi = note
         cents = ((mf - note) * 100).toFloat()

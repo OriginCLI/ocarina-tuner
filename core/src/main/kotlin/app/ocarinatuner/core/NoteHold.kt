@@ -37,6 +37,9 @@ class NoteHold(
 
     fun reset() { count = 0; jumpRun = 0 }
 
+    /** True while a note has readings that [release] hasn't finished yet. */
+    val pending: Boolean get() = count > 0
+
     /** One voiced reading, as fractional MIDI. */
     fun add(timeNs: Long, midi: Double) {
         if (count > 0) {
