@@ -32,6 +32,11 @@ Java_app_ocarinatuner_audio_NativeEngine_nativeSetGate(JNIEnv *, jobject, jfloat
     engine()->setGate(db, clarity);
 }
 
+JNIEXPORT void JNICALL
+Java_app_ocarinatuner_audio_NativeEngine_nativeSetTestTone(JNIEnv *, jobject, jfloat hz, jfloat db) {
+    engine()->setTestTone(hz, db);
+}
+
 // Copies up to times.length new frames. Returns how many were written.
 JNIEXPORT jint JNICALL
 Java_app_ocarinatuner_audio_NativeEngine_nativeDrain(JNIEnv *env, jobject, jlongArray times,

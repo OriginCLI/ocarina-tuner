@@ -1,6 +1,7 @@
 // Desktop tests for the YIN detector: accuracy across the A4-F6 range, rejection of
 // silence and noise, and analysis time per window.
 #include "PitchDetector.h"
+#include "TestTone.h"
 #include <chrono>
 #include <cstdio>
 #include <random>
@@ -93,6 +94,33 @@ int main() {
         auto t1 = std::chrono::steady_clock::now();
         double us = std::chrono::duration<double, std::micro>(t1 - t0).count() / iters;
         std::printf("  analysis time: %.1f us per window (desktop x86)\n", us);
+    }
+
+    // The debug test tone (used on the emulator) must read as the note it plays, at the level
+    // it was asked for, and stay silent when off.
+    {
+        const int sr = 48000, N = 1024;
+        PitchDetector det(sr, N);
+        TestTone tt;
+        std::vector<float> buf(N);
+        double worstTone = 0, worstDb = 0;
+        for (int midi = 69; midi <= 89; ++midi) {
+            for (double db : {-20.0, -45.0}) {
+                double hz = 440.0 * std::pow(2.0, (midi - 69) / 12.0);
+                tt.set((float) hz, (float) db);
+                tt.render(buf.data(), N, sr);  // warm-up block, then analyse the next one
+                tt.render(buf.data(), N, sr);
+                auto r = det.analyze(buf.data());
+                CHECK(!std::isnan(r.hz), "test tone: no pitch for %.1f Hz", hz);
+                if (!std::isnan(r.hz)) worstTone = std::max(worstTone, std::fabs(cents(r.hz, hz)));
+                worstDb = std::max(worstDb, std::fabs(r.rmsDb - db));
+            }
+        }
+        std::printf("test tone: worst %.3f cents, level within %.2f dB\n", worstTone, worstDb);
+        CHECK(worstTone < 1.0, "test tone pitch error %.2f cents", worstTone);
+        CHECK(worstDb < 0.5, "test tone level error %.2f dB", worstDb);
+        tt.set(0, -20);
+        CHECK(!tt.active(), "test tone still active after off");
     }
 
     // Median3 behaviour.

@@ -52,6 +52,7 @@ int PitchEngine::start() {
     if (res != 0) return res;
 
     const int sr = stream_->getSampleRate();
+    sampleRate_ = sr;
     // ~1024 samples at 48 kHz, scaled for other rates so the time span stays ~21 ms.
     window_ = std::max(512, (int) std::lround(1024.0 * sr / 48000.0));
     hop_ = std::max(64, (int) std::lround(128.0 * sr / 48000.0));
@@ -110,7 +111,8 @@ oboe::DataCallbackResult PitchEngine::onAudioReady(oboe::AudioStream *stream, vo
     lastCallbackFrames_.store(numFrames);
     const int64_t n = callbacks_.fetch_add(1) + 1;
 
-    const float *in = static_cast<const float *>(audioData);
+    float *in = static_cast<float *>(audioData);
+    if (testTone_.active()) testTone_.render(in, numFrames, sampleRate_);
     const int w = window_;
     float *h = history_.data();
     for (int i = 0; i < numFrames; ++i) {

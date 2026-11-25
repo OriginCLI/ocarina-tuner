@@ -33,9 +33,16 @@ class FingeringChart(val instrument: String, fingerings: List<Fingering>) {
 
     /** Next / previous note that has a fingering (for the stepper). */
     fun step(midi: Int, delta: Int): Int {
-        val idx = fingerings.indexOfFirst { it.midi >= midi }.let { if (it < 0) fingerings.lastIndex else it }
-        val target = (idx + delta).coerceIn(0, fingerings.lastIndex)
-        return fingerings[target].midi
+        val idx = fingerings.indexOfFirst { it.midi == midi }
+        if (idx < 0) {
+            // Not in the chart (e.g. C#5 before sharps are added): go to the neighbour on that side.
+            return when {
+                delta > 0 -> fingerings.firstOrNull { it.midi > midi }?.midi ?: highest
+                delta < 0 -> fingerings.lastOrNull { it.midi < midi }?.midi ?: lowest
+                else -> fingerings.minBy { kotlin.math.abs(it.midi - midi) }.midi
+            }
+        }
+        return fingerings[(idx + delta).coerceIn(0, fingerings.lastIndex)].midi
     }
 
     /** Natural notes only (the C major scale), used by the scale drill. */

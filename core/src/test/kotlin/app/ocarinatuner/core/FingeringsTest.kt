@@ -39,7 +39,9 @@ class FingeringsTest {
         assertEquals(71, c.step(69, 1))
         assertEquals(69, c.step(69, -1))
         assertEquals(89, c.step(89, 1))
-        assertEquals(74, c.step(73, 0)) // C#5 is not in the chart, snaps to D5
+        // C#5 is not in the chart: arrows go to its neighbours.
+        assertEquals(74, c.step(73, 1))
+        assertEquals(72, c.step(73, -1))
     }
 
     @Test fun sharpsCanBeAdded() {
@@ -70,15 +72,23 @@ class FingeringsTest {
 
 class AutoPlaceTest {
     @Test fun followsTheSilhouette() {
-        // A wedge: top edge slopes down from y=0 at the left to y=40 at the right.
+        // Body between a top edge falling from y=0 to y=40 and a flat bottom at y=80,
+        // with a "mouthpiece" hanging to the bottom of the image at x 30..50.
         val w = 200; val h = 100
-        val mask = BooleanArray(w * h) { i -> val x = i % w; val y = i / w; y >= x / 5 && y < 90 }
+        val mask = BooleanArray(w * h) { i ->
+            val x = i % w; val y = i / w
+            (y >= x / 5 && y <= 80) || (x in 30..50 && y in 80..99)
+        }
         val holes = HoleLayout.autoPlace(mask, w, h)
         assertEquals(10, holes.size)
-        val li = holes.getValue("L_INDEX"); val rp = holes.getValue("R_PINKY")
-        assertTrue(rp.y > li.y, "holes follow the falling top edge")
-        assertEquals(0.405f, li.x, 0.001f)
-        val expectedY = ((0.405f * w).toInt() / 5 + 0.21f * h) / h
-        assertEquals(expectedY, li.y, 0.02f)
+        val li = holes.getValue("L_INDEX"); val ri = holes.getValue("R_INDEX")
+        assertEquals(0.42f, li.x, 0.001f)
+        // L index sits 24% of the way from top to bottom at its column.
+        val top = (0.42f * w).toInt() / 5f
+        assertEquals((top + 0.24f * (80 - top)) / h, li.y, 0.02f)
+        // Right-hand holes are on the near (lower) side, left-hand on the far side.
+        assertTrue(ri.y > li.y + 0.2f, "R index ${ri.y} below L index ${li.y}")
+        // The mouthpiece doesn't drag the L subhole down: it stays inside the body.
+        assertTrue(holes.getValue("L_SUB").y < 0.8f)
     }
 }

@@ -38,6 +38,19 @@ object Music {
     /** Cents of [hz] relative to the equal-tempered pitch of [midi]. */
     fun centsFrom(hz: Double, midi: Int, a4: Double = 440.0): Double = (midiOf(hz, a4) - midi) * 100.0
 
+    /**
+     * A signed number for display, e.g. "+3", "-12.5". Anything that rounds to zero is shown
+     * as plain "0" / "0.0", never "-0" or "+0".
+     */
+    fun signed(v: Double, decimals: Int = 0): String {
+        val s = String.format(java.util.Locale.US, "%.${decimals}f", abs(v))
+        return when {
+            s.all { it == '0' || it == '.' } -> s
+            v < 0 -> "-$s"
+            else -> "+$s"
+        }
+    }
+
     /** Nearest note and the offset from it, -50..+50 cents. */
     fun nearest(hz: Double, a4: Double = 440.0): NoteReading {
         val m = midiOf(hz, a4)

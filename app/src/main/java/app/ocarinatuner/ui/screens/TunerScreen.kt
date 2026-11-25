@@ -34,9 +34,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -83,7 +85,7 @@ private fun TunerCard(c: TunerController) {
             }
         }
         Box(Modifier.fillMaxWidth().height(230.dp), contentAlignment = Alignment.TopCenter) {
-            CentsGauge({ c.cents }, { c.voiced }, { c.tolerance }, Modifier.fillMaxWidth().height(230.dp))
+            CentsGauge({ c.cents }, { c.voiced }, { c.tolerance }, Modifier.fillMaxWidth().height(230.dp), held = { c.hasReading })
             Column(Modifier.offset(y = 52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 NoteName(c)
                 HzLabel(c)
@@ -103,23 +105,26 @@ private fun TunerCard(c: TunerController) {
 @Composable
 private fun NoteName(c: TunerController) {
     val midi = c.midi
-    val on = c.voiced
-    val name = Music.pitchClass(midi)
-    val oct = Music.octave(midi)
+    // The last note stays on screen after the sound stops, dimmed, until the next note.
+    val alpha = when { c.voiced -> 1f; c.hasReading -> 0.5f; else -> 0.25f }
     Text(
-        buildAnnotatedString {
-            append(name)
-            withStyle(SpanStyle(fontSize = 52.sp, letterSpacing = 0.sp)) { append(oct.toString()) }
+        if (!c.hasReading) AnnotatedString("–") else buildAnnotatedString {
+            append(Music.pitchClass(midi))
+            withStyle(SpanStyle(fontSize = 52.sp, letterSpacing = 0.sp)) { append(Music.octave(midi).toString()) }
         },
         style = Type.Note,
-        color = if (on) Color.Unspecified else Palette.TextFaint.copy(alpha = 0.35f),
+        modifier = Modifier.alpha(alpha),
     )
 }
 
 @Composable
 private fun HzLabel(c: TunerController) {
     Text(
-        if (c.voiced) "${String.format(Locale.US, "%.1f", c.hz)} Hz" else "Play a note",
+        when {
+            c.voiced -> "${String.format(Locale.US, "%.1f", c.hz)} Hz"
+            c.hasReading -> "last note · ${String.format(Locale.US, "%.1f", c.hz)} Hz"
+            else -> "Play a note"
+        },
         color = Palette.TextDim, fontSize = 18.sp, style = Type.Numbers,
     )
 }
@@ -127,18 +132,20 @@ private fun HzLabel(c: TunerController) {
 @Composable
 private fun CentsPill(c: TunerController) {
     val on = c.voiced
+    val held = !on && c.hasReading
     val cents = c.cents
-    val color = if (on) Palette.forCents(cents, c.tolerance) else Palette.TextFaint
+    val color = if (on || held) Palette.forCents(cents, c.tolerance) else Palette.TextFaint
     val shape = RoundedCornerShape(50)
     Box(
         Modifier
+            .alpha(if (held) 0.5f else 1f)
             .clip(shape)
             .background(color.copy(alpha = 0.10f))
             .border(1.5.dp, color.copy(alpha = 0.8f), shape)
             .padding(horizontal = 22.dp, vertical = 6.dp),
     ) {
         Text(
-            if (on) String.format(Locale.US, "%+.1f cents", cents) else "– cents",
+            if (on || held) "${Music.signed(cents.toDouble(), 1)} cents" else "– cents",
             color = color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, style = Type.Numbers,
         )
     }
@@ -147,6 +154,7 @@ private fun CentsPill(c: TunerController) {
 @Composable
 private fun FingeringStepper(c: TunerController) {
     val f = c.fingering
+    val shown = c.shownMidi
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         ThumbHoles(f)
         Spacer(Modifier.weight(1f))
@@ -156,12 +164,13 @@ private fun FingeringStepper(c: TunerController) {
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RoundIcon(Icons.Filled.ChevronLeft) { c.stepperMidi = c.chart.step(c.stepperMidi, -1) }
-            Column(Modifier.width(92.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Fingering", color = Palette.TextDim, fontSize = 12.sp)
-                Text(f?.name ?: "—", color = Palette.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            RoundIcon(Icons.Filled.ChevronLeft) { c.stepFingering(-1) }
+            Column(Modifier.width(100.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(if (f != null) "Fingering" else "No fingering", color = if (f != null) Palette.TextDim else Palette.Sharp, fontSize = 12.sp)
+                Text(Music.name(shown), color = if (f != null) Palette.Text else Palette.TextDim, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                if (f == null) Text("add it in Settings", color = Palette.TextFaint, fontSize = 10.sp)
             }
-            RoundIcon(Icons.Filled.ChevronRight) { c.stepperMidi = c.chart.step(c.stepperMidi, 1) }
+            RoundIcon(Icons.Filled.ChevronRight) { c.stepFingering(1) }
         }
     }
 }

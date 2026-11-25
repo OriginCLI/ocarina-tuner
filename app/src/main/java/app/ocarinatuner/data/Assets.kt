@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import app.ocarinatuner.core.HoleLayout
+import app.ocarinatuner.core.HolePos
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
 import android.graphics.BitmapFactory
@@ -43,7 +46,19 @@ class Assets(private val context: Context) {
     fun resetFingerings() { customFingerings.delete() }
 
     /** A skin plus where its image lives: an asset folder, or a user folder on the device. */
-    data class SkinEntry(val skin: Skin, val dir: String, val user: Boolean = false)
+    data class SkinEntry(
+        val skin: Skin,
+        val dir: String,
+        val user: Boolean = false,
+        /** Hole positions before any adjustment in the editor ("Reset" goes back to these). */
+        val defaultHoles: Map<String, HolePos> = skin.holes,
+    ) {
+        /** Unique per skin. Bundled skins all share one asset folder, so [dir] alone is not. */
+        val key: String get() = "$dir/${skin.id}"
+    }
+
+    private val holeOverrideRoot get() = File(context.filesDir, "skin_holes").apply { mkdirs() }
+    private val holesSerializer = MapSerializer(String.serializer(), HolePos.serializer())
 
     private val userSkinRoot get() = File(context.filesDir, "skins").apply { mkdirs() }
 
@@ -53,18 +68,29 @@ class Assets(private val context: Context) {
         try {
             val m = SkinManifest.parse(context.assets.open("skins/skins.json").bufferedReader().use { it.readText() })
             default = m.default
-            m.skins.sortedBy { it.order }.forEach { out += SkinEntry(it, "skins") }
+            m.skins.sortedBy { it.order }.forEach { s ->
+                // Hole positions the user adjusted for a bundled skin are kept on the device.
+                val o = File(holeOverrideRoot, "${s.id}.json")
+                val holes = if (o.exists()) try { skinJson.decodeFromString(holesSerializer, o.readText()) } catch (e: Exception) { null } else null
+                out += SkinEntry(if (holes != null) s.copy(holes = holes) else s, "skins", defaultHoles = s.holes)
+            }
         } catch (e: Exception) { /* no bundled skins */ }
         userSkinRoot.listFiles()?.sortedBy { it.lastModified() }?.forEach { dir ->
             val f = File(dir, "skin.json")
             if (f.exists()) try {
-                out += SkinEntry(skinJson.decodeFromString(Skin.serializer(), f.readText()), dir.absolutePath, user = true)
+                val skin = skinJson.decodeFromString(Skin.serializer(), f.readText())
+                // The auto-placed holes from import, so Reset still works after edits.
+                val auto = File(dir, AUTO_HOLES).takeIf { it.exists() }?.let {
+                    try { skinJson.decodeFromString(holesSerializer, it.readText()) } catch (e: Exception) { null }
+                }
+                out += SkinEntry(skin, dir.absolutePath, user = true, defaultHoles = auto ?: skin.holes)
             } catch (e: Exception) { /* skip broken skin */ }
         }
         return out to default
     }
 
     private val skinJson = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val AUTO_HOLES = "auto_holes.json"
 
     /**
      * Imports a hole-free ocarina picture (PNG/WebP with transparency works best): crops it to
@@ -99,13 +125,17 @@ class Assets(private val context: Context) {
         File(dir, "image.png").outputStream().use { img.compress(Bitmap.CompressFormat.PNG, 100, it) }
         val skin = Skin(id, name.ifBlank { "My ocarina" }, "image.png", w.toFloat() / h, "user", 1000, holes)
         File(dir, "skin.json").writeText(skinJson.encodeToString(Skin.serializer(), skin))
+        File(dir, AUTO_HOLES).writeText(skinJson.encodeToString(holesSerializer, holes))
         return SkinEntry(skin, dir.absolutePath, user = true)
     }
 
-    fun saveUserSkin(e: SkinEntry) {
-        if (!e.user) return
-        File(e.dir, "skin.json").writeText(skinJson.encodeToString(Skin.serializer(), e.skin))
+    /** Saves edited hole positions: into the skin itself for imported skins, as an override otherwise. */
+    fun saveSkinHoles(e: SkinEntry) {
+        if (e.user) File(e.dir, "skin.json").writeText(skinJson.encodeToString(Skin.serializer(), e.skin))
+        else File(holeOverrideRoot, "${e.skin.id}.json").writeText(skinJson.encodeToString(holesSerializer, e.skin.holes))
     }
+
+    fun clearHoleOverride(e: SkinEntry) { if (!e.user) File(holeOverrideRoot, "${e.skin.id}.json").delete() }
 
     fun deleteUserSkin(e: SkinEntry) {
         if (e.user) File(e.dir).deleteRecursively()

@@ -12,6 +12,7 @@ import app.ocarinatuner.core.AttackDetector
 import app.ocarinatuner.core.FingeringChart
 import app.ocarinatuner.core.LongToneDrill
 import app.ocarinatuner.core.Music
+import app.ocarinatuner.core.NoteHold
 import app.ocarinatuner.core.PitchHistory
 import app.ocarinatuner.core.ScaleDrill
 import app.ocarinatuner.data.Assets
@@ -44,7 +45,10 @@ class TunerController(context: Context) {
     var startError by mutableStateOf<Int?>(null); private set
 
     // ---- live reading ----
+    /** True while a note is sounding right now. */
     var voiced by mutableStateOf(false); private set
+    /** True once any note has been heard; the last note stays on screen after it stops. */
+    var hasReading by mutableStateOf(false); private set
     var midi by mutableIntStateOf(69); private set
     var cents by mutableFloatStateOf(0f); private set
     var hz by mutableFloatStateOf(0f); private set
@@ -54,8 +58,11 @@ class TunerController(context: Context) {
     var frameTick by mutableLongStateOf(0L); private set
     val history = PitchHistory(4096)
 
-    /** Note shown by the fingering stepper when nothing is sounding. */
-    var stepperMidi by mutableIntStateOf(69)
+    /**
+     * Note whose fingering is shown (ocarina + stepper). Follows what you play; the stepper
+     * arrows browse from there. May be a note with no fingering in the chart.
+     */
+    var shownMidi by mutableIntStateOf(69)
 
     // ---- attack check ----
     private var attackDetector = AttackDetector(a4.toDouble())
@@ -76,6 +83,9 @@ class TunerController(context: Context) {
     private var lastVoicedNs = 0L
     private var latestAnalysisNs = 0L
 
+    /** Chooses the steady value left on screen after a note stops. */
+    private val hold = NoteHold(gapNs = HOLD_NS)
+
     init {
         val (list, default) = assets.loadSkins()
         skins.addAll(list)
@@ -90,6 +100,7 @@ class TunerController(context: Context) {
         running = r == 0
         startError = if (r == 0) null else r
         history.clear()
+        hold.reset()
     }
 
     fun stop() {
@@ -107,11 +118,18 @@ class TunerController(context: Context) {
         framesPerDisplay = n
         if (n > 0) {
             val a = a4.toDouble()
+            var newestVoicedHz = Float.NaN
             for (i in 0 until n) {
                 val t = NativeEngine.times[i]
                 val f = NativeEngine.hz[i]
-                val m = if (f.isNaN()) Float.NaN else Music.midiOf(f.toDouble(), a).toFloat()
+                val md = if (f.isNaN()) Double.NaN else Music.midiOf(f.toDouble(), a)
+                val m = md.toFloat()
                 history.add(t, m)
+                if (!f.isNaN()) {
+                    hold.add(t, md)
+                    lastVoicedNs = t
+                    newestVoicedHz = f
+                }
                 attackDetector.feed(t, f)?.let {
                     attacks.add(0, it)
                     if (attacks.size > 20) attacks.removeAt(attacks.lastIndex)
@@ -122,21 +140,24 @@ class TunerController(context: Context) {
             if (longTone != null || scale != null) drillTick++
 
             val last = n - 1
-            val f = NativeEngine.hz[last]
             latestAnalysisNs = NativeEngine.times[last]
             level = NativeEngine.rmsDb[last]
-            if (!f.isNaN()) {
+            val f = newestVoicedHz
+            if (!f.isNaN() && latestAnalysisNs - lastVoicedNs <= HOLD_NS) {
                 val m = Music.midiOf(f.toDouble(), a)
                 val note = m.roundToInt()
                 midi = note
                 cents = ((m - note) * 100).toFloat()
                 hz = f
                 voiced = true
-                lastVoicedNs = latestAnalysisNs
-                stepperMidi = chart.forMidi(note)?.midi ?: stepperMidi
-            } else if (voiced && latestAnalysisNs - lastVoicedNs > 60_000_000L) {
+                hasReading = true
+                shownMidi = note
+            } else if (hold.pending && latestAnalysisNs - lastVoicedNs > HOLD_NS) {
                 // Short hold (60 ms) bridges single gated frames without delaying new notes.
+                // Checking the hold (not just `voiced`) also catches a whole note that started
+                // and ended between two drawn frames, e.g. while the UI was stalled.
                 voiced = false
+                holdLastNote()
             }
             frameTick++
         }
@@ -148,6 +169,18 @@ class TunerController(context: Context) {
             NativeEngine.refreshStats()
             stats = EngineStats(NativeEngine.stats)
         }
+    }
+
+    /** The note stopped: leave its steady value on screen (see [NoteHold]). */
+    private fun holdLastNote() {
+        val mf = hold.release()
+        if (mf.isNaN()) return
+        hasReading = true
+        val note = mf.roundToInt()
+        midi = note
+        cents = ((mf - note) * 100).toFloat()
+        hz = Music.hzOf(mf, a4.toDouble()).toFloat()
+        shownMidi = note
     }
 
     // ---- settings mutations ----
@@ -176,17 +209,17 @@ class TunerController(context: Context) {
         return e
     }
 
-    fun updateUserSkin(e: Assets.SkinEntry) {
-        assets.saveUserSkin(e)
-        val i = skins.indexOfFirst { it.dir == e.dir }
+    fun updateSkinHoles(e: Assets.SkinEntry) {
+        if (!e.user && e.skin.holes == e.defaultHoles) assets.clearHoleOverride(e) else assets.saveSkinHoles(e)
+        val i = skins.indexOfFirst { it.key == e.key }
         if (i >= 0) skins[i] = e
-        if (skin?.dir == e.dir) skin = e
+        if (skin?.key == e.key) skin = e
     }
 
     fun deleteUserSkin(e: Assets.SkinEntry) {
         assets.deleteUserSkin(e)
-        skins.removeAll { it.dir == e.dir }
-        if (skin?.dir == e.dir) skins.firstOrNull()?.let { selectSkin(it) }
+        skins.removeAll { it.key == e.key }
+        if (skin?.key == e.key) skins.firstOrNull()?.let { selectSkin(it) }
     }
 
     fun reloadFingerings() { chart = assets.loadFingerings() }
@@ -207,7 +240,9 @@ class TunerController(context: Context) {
 
     fun clearAttacks() = attacks.clear()
 
-    val fingering get() = chart.forMidi(if (voiced) midi else stepperMidi)
+    val fingering get() = chart.forMidi(shownMidi)
+
+    fun stepFingering(delta: Int) { shownMidi = chart.step(shownMidi, delta) }
     val estimatedLatencyMs: Double?
         get() {
             val s = stats ?: return null
@@ -217,4 +252,8 @@ class TunerController(context: Context) {
             val windowMs = s.window * 1000.0 / s.sampleRate
             return s.inputLatencyMs + windowMs / 2 + readingAgeMs + frameIntervalMs
         }
+
+    private companion object {
+        const val HOLD_NS = 60_000_000L // a gap this long ends a note
+    }
 }

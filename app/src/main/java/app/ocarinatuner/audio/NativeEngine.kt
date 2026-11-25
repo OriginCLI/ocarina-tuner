@@ -20,6 +20,9 @@ object NativeEngine {
     fun stop() = nativeStop()
     fun setGate(minRmsDb: Float, minClarity: Float) = nativeSetGate(minRmsDb, minClarity)
 
+    /** Debug builds only: feed a synthetic tone instead of the mic. [hz] <= 0 turns it off. */
+    fun setTestTone(hz: Float, dbfs: Float) = nativeSetTestTone(hz, dbfs)
+
     /** Copies new analysis frames into [times]/[hz]/[clarity]/[rmsDb]; returns the count. */
     fun drain(): Int = nativeDrain(times, hz, clarity, rmsDb)
 
@@ -28,6 +31,7 @@ object NativeEngine {
     private external fun nativeStart(): Int
     private external fun nativeStop()
     private external fun nativeSetGate(db: Float, clarity: Float)
+    private external fun nativeSetTestTone(hz: Float, db: Float)
     private external fun nativeDrain(times: LongArray, hz: FloatArray, clarity: FloatArray, rms: FloatArray): Int
     private external fun nativeStats(out: DoubleArray)
 }

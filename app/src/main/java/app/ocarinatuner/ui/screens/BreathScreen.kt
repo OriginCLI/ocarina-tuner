@@ -71,7 +71,7 @@ private fun WobbleStats(c: TunerController) {
         val has = secs > 0.2
         StatTile("Wobble (2 s)", if (has) "±${sd.roundToInt()}¢" else "–", Modifier.weight(1f),
             if (!has) Palette.TextFaint else if (sd <= 5) Palette.InTune else if (sd <= 12) Palette.Text else Palette.Sharp)
-        StatTile("Average", if (has) String.format(Locale.US, "%+.0f¢", mean) else "–", Modifier.weight(1f),
+        StatTile("Average", if (has) "${Music.signed(mean)}¢" else "–", Modifier.weight(1f),
             if (has) Palette.forCents(mean.toFloat(), c.tolerance) else Palette.TextFaint)
         StatTile("Sounding", String.format(Locale.US, "%.1f s", secs), Modifier.weight(1f))
     }
@@ -104,7 +104,7 @@ private fun AttackRow(a: AttackDetector.Attack, tol: Float) {
         Text(Music.name(a.midi), color = Palette.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(48.dp))
         Column(Modifier.weight(1f)) {
             Text(verdict, color = color, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(String.format(Locale.US, "settled %+.0f¢", a.settledCents), color = Palette.TextFaint, fontSize = 12.sp)
+            Text("settled ${Music.signed(a.settledCents.toDouble())}¢", color = Palette.TextFaint, fontSize = 12.sp)
         }
         // Mini bar: attack offset, centre = settled pitch.
         Box(Modifier.width(90.dp).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Palette.Bg)) {
@@ -116,7 +116,7 @@ private fun AttackRow(a: AttackDetector.Attack, tol: Float) {
             )
             Box(Modifier.padding(start = 44.dp).width(2.dp).height(8.dp).background(Palette.Text))
         }
-        Text(String.format(Locale.US, "%+.0f¢", a.attackCents), color = color, fontSize = 15.sp,
+        Text("${Music.signed(a.attackCents.toDouble())}¢", color = color, fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold, modifier = Modifier.width(52.dp).padding(start = 8.dp))
     }
 }
