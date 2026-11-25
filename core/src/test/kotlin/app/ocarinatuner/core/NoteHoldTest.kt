@@ -52,6 +52,13 @@ class NoteHoldTest {
         assertEquals(72.0, h.release(), 1e-9)
     }
 
+    @Test fun legatoNoteJustOverTheMinimumIsShown() {
+        val h = NoteHold()
+        val t = h.play(0, 500) { 69.0 }
+        h.play(t, 84) { 72.0 } // 84 ms: over the 80 ms minimum even counting from its first reading
+        assertEquals(72.0, h.release(), 1e-9)
+    }
+
     @Test fun legatoSqueakAtTheEndKeepsTheNoteBeforeIt() {
         val h = NoteHold()
         val t = h.play(0, 500) { 69.0 }

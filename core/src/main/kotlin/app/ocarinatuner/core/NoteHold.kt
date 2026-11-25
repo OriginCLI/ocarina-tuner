@@ -30,6 +30,8 @@ class NoteHold(
     private var lastNs = 0L
     private var ref = 0.0      // slowly follows the pitch of the current note
     private var jumpRun = 0
+    private val carryT = LongArray(jumpFrames)
+    private val carryM = DoubleArray(jumpFrames)
 
     /** Fractional MIDI of the note left on screen; NaN before the first note. */
     var held = Double.NaN
@@ -46,7 +48,7 @@ class NoteHold(
             if (timeNs - lastNs > gapNs) {
                 finish()
             } else if (abs(midi - ref) > jumpSemitones) {
-                if (++jumpRun >= jumpFrames) finish()
+                if (++jumpRun >= jumpFrames) splitAtJump()
             } else {
                 jumpRun = 0
             }
@@ -58,6 +60,28 @@ class NoteHold(
         count++
         lastNs = timeNs
         if (jumpRun == 0) ref += 0.05 * (midi - ref)
+    }
+
+    /**
+     * A legato pitch jump is confirmed. The earlier readings of the jump already sit in the
+     * old note; move them to the new one so its length (and the blip test) starts at the jump.
+     */
+    private fun splitAtJump() {
+        val k = minOf(jumpRun - 1, count - 1)
+        for (j in 0 until k) {
+            val i = (count - k + j) % times.size
+            carryT[j] = times[i]; carryM[j] = values[i]
+        }
+        count -= k
+        lastNs = times[(count - 1) % times.size]
+        finish()
+        for (j in 0 until k) {
+            if (j == 0) { startNs = carryT[0]; ref = carryM[0] }
+            val i = count % times.size
+            times[i] = carryT[j]; values[i] = carryM[j]
+            count++
+            lastNs = carryT[j]
+        }
     }
 
     /** The sound stopped: returns the value to show (also kept in [held]). */
