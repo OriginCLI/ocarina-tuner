@@ -51,7 +51,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.ocarinatuner.audio.TunerController
@@ -92,6 +91,8 @@ fun OcarinaApp(
                     .padding(horizontal = 12.dp)
                     .padding(bottom = 12.dp),
             ) {
+                // Inline at the top rather than floating, so it never covers the note or meters.
+                if (c.showDebug) DebugOverlay(c, Modifier.fillMaxWidth().padding(bottom = 8.dp))
                 if (!hasMicPermission) MicPermissionCard(requestMic)
                 else if (c.startError != null) EngineErrorCard(c.startError!!) { c.stop(); c.start() }
                 when (tab) {
@@ -102,8 +103,6 @@ fun OcarinaApp(
             }
             BottomBar(tab) { tab = it }
         }
-        // Bottom-left, above the tab bar, so it never covers the note. Tap to expand/collapse.
-        if (c.showDebug) DebugOverlay(c, Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(start = 10.dp, bottom = 96.dp))
     }
 
     if (showSettings) SettingsSheet(c, updater) { showSettings = false }

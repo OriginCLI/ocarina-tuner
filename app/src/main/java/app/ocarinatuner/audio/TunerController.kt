@@ -12,6 +12,7 @@ import app.ocarinatuner.core.AttackDetector
 import app.ocarinatuner.core.FingeringChart
 import app.ocarinatuner.core.LongToneDrill
 import app.ocarinatuner.core.Music
+import app.ocarinatuner.core.NoteHold
 import app.ocarinatuner.core.PitchHistory
 import app.ocarinatuner.core.ScaleDrill
 import app.ocarinatuner.data.Assets
@@ -82,6 +83,9 @@ class TunerController(context: Context) {
     private var lastVoicedNs = 0L
     private var latestAnalysisNs = 0L
 
+    /** Chooses the steady value left on screen after a note stops. */
+    private val hold = NoteHold(gapNs = HOLD_NS)
+
     init {
         val (list, default) = assets.loadSkins()
         skins.addAll(list)
@@ -96,6 +100,7 @@ class TunerController(context: Context) {
         running = r == 0
         startError = if (r == 0) null else r
         history.clear()
+        hold.reset()
     }
 
     fun stop() {
@@ -116,8 +121,13 @@ class TunerController(context: Context) {
             for (i in 0 until n) {
                 val t = NativeEngine.times[i]
                 val f = NativeEngine.hz[i]
-                val m = if (f.isNaN()) Float.NaN else Music.midiOf(f.toDouble(), a).toFloat()
+                val md = if (f.isNaN()) Double.NaN else Music.midiOf(f.toDouble(), a)
+                val m = md.toFloat()
                 history.add(t, m)
+                if (!f.isNaN()) {
+                    hold.add(t, md)
+                    lastVoicedNs = t
+                }
                 attackDetector.feed(t, f)?.let {
                     attacks.add(0, it)
                     if (attacks.size > 20) attacks.removeAt(attacks.lastIndex)
@@ -139,11 +149,11 @@ class TunerController(context: Context) {
                 hz = f
                 voiced = true
                 hasReading = true
-                lastVoicedNs = latestAnalysisNs
                 shownMidi = note
-            } else if (voiced && latestAnalysisNs - lastVoicedNs > 60_000_000L) {
+            } else if (voiced && latestAnalysisNs - lastVoicedNs > HOLD_NS) {
                 // Short hold (60 ms) bridges single gated frames without delaying new notes.
                 voiced = false
+                holdLastNote()
             }
             frameTick++
         }
@@ -155,6 +165,17 @@ class TunerController(context: Context) {
             NativeEngine.refreshStats()
             stats = EngineStats(NativeEngine.stats)
         }
+    }
+
+    /** The note stopped: leave its steady value on screen (see [NoteHold]). */
+    private fun holdLastNote() {
+        val mf = hold.release()
+        if (mf.isNaN()) return
+        val note = mf.roundToInt()
+        midi = note
+        cents = ((mf - note) * 100).toFloat()
+        hz = Music.hzOf(mf, a4.toDouble()).toFloat()
+        shownMidi = note
     }
 
     // ---- settings mutations ----
@@ -226,4 +247,8 @@ class TunerController(context: Context) {
             val windowMs = s.window * 1000.0 / s.sampleRate
             return s.inputLatencyMs + windowMs / 2 + readingAgeMs + frameIntervalMs
         }
+
+    private companion object {
+        const val HOLD_NS = 60_000_000L // a gap this long ends a note
+    }
 }

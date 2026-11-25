@@ -145,7 +145,7 @@ private fun CentsPill(c: TunerController) {
             .padding(horizontal = 22.dp, vertical = 6.dp),
     ) {
         Text(
-            if (on || held) String.format(Locale.US, "%+.1f cents", cents) else "– cents",
+            if (on || held) "${Music.signed(cents.toDouble(), 1)} cents" else "– cents",
             color = color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, style = Type.Numbers,
         )
     }

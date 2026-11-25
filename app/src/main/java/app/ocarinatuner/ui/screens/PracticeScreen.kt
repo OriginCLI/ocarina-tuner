@@ -152,7 +152,7 @@ private fun LongTonePanel(c: TunerController) {
                 onClick = { c.startLongTone(drill?.targetMidi ?: target) },
                 colors = ButtonDefaults.buttonColors(containerColor = Palette.Accent),
             ) { Text(if (drill == null) "Start" else "Restart") }
-            if (drill != null) OutlinedButton(onClick = { c.stopLongTone() }) { Text("Stop") }
+            if (drill != null) OutlinedButton(onClick = { c.stopLongTone() }) { Text(if (drill.finished) "Done" else "Stop") }
         }
     }
     TraceCard(c, height = 150, targetMidi = { c.longTone?.targetMidi })
@@ -182,7 +182,7 @@ private fun ProgressRing(progress: Float, cents: Float, tol: Float, label: Strin
         drawArc(color, -90f, 360f * progress, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
         val l1 = measurer.measure(label, big)
         drawText(l1, topLeft = Offset((size.width - l1.size.width) / 2, size.height / 2 - l1.size.height + 4.dp.toPx()))
-        val txt = if (cents.isNaN()) "${(progress * 8).roundToInt()} / 8 s" else String.format(Locale.US, "%+.0f¢", cents)
+        val txt = if (cents.isNaN()) "${(progress * 8).roundToInt()} / 8 s" else "${Music.signed(cents.toDouble())}¢"
         val l2 = measurer.measure(txt, small.copy(color = if (cents.isNaN()) Palette.TextDim else color))
         drawText(l2, topLeft = Offset((size.width - l2.size.width) / 2, size.height / 2 + 6.dp.toPx()))
     }
@@ -219,7 +219,7 @@ private fun ScalePanel(c: TunerController) {
             Spacer(Modifier.height(10.dp))
             HoldBar(drill.noteProgress)
             Spacer(Modifier.height(8.dp))
-            ScaleDots(drill)
+            ScaleDots(drill.notes.size, drill.index)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(onClick = { c.skipScaleNote() }) { Text("Skip note") }
@@ -228,7 +228,7 @@ private fun ScalePanel(c: TunerController) {
         } else {
             Text("Done! Average offset per note:", color = Palette.Text, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
-            ScaleChart(drill.results, c.tolerance, Modifier.fillMaxWidth().height(200.dp))
+            ScaleChart(drill.results.toList(), c.tolerance, Modifier.fillMaxWidth().height(200.dp))
             Spacer(Modifier.height(8.dp))
             Text("Above the line = sharp, so that note wants less air. Below = flat, give it more air.",
                 color = Palette.TextDim, fontSize = 13.sp)
@@ -237,7 +237,7 @@ private fun ScalePanel(c: TunerController) {
         }
         if (drill != null && drill.results.isNotEmpty() && !drill.finished) {
             Spacer(Modifier.height(12.dp))
-            ScaleChart(drill.results, c.tolerance, Modifier.fillMaxWidth().height(150.dp))
+            ScaleChart(drill.results.toList(), c.tolerance, Modifier.fillMaxWidth().height(150.dp))
         }
     }
 }
@@ -247,7 +247,7 @@ private fun LiveOffset(c: TunerController, target: Int) {
     val on = c.voiced && abs(Music.centsFrom(c.hz.toDouble(), target, c.a4.toDouble())) <= 50
     val cents = if (on) Music.centsFrom(c.hz.toDouble(), target, c.a4.toDouble()).toFloat() else Float.NaN
     Text(
-        if (on) String.format(Locale.US, "%+.0f¢", cents) else if (c.voiced) "→ ${Music.name(c.midi)}" else "…",
+        if (on) "${Music.signed(cents.toDouble())}¢" else if (c.voiced) "→ ${Music.name(c.midi)}" else "…",
         color = if (on) Palette.forCents(cents, c.tolerance) else Palette.TextFaint, fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
     )
 }
@@ -260,15 +260,15 @@ private fun HoldBar(p: Float) {
 }
 
 @Composable
-private fun ScaleDots(d: ScaleDrill) {
+private fun ScaleDots(count: Int, index: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        d.notes.forEachIndexed { i, _ ->
+        for (i in 0 until count) {
             val color = when {
-                i < d.index -> Palette.InTune
-                i == d.index -> Palette.Accent
+                i < index -> Palette.InTune
+                i == index -> Palette.Accent
                 else -> Palette.CardHi
             }
-            Box(Modifier.size(if (i == d.index) 12.dp else 9.dp).clip(CircleShape).background(color))
+            Box(Modifier.size(if (i == index) 12.dp else 9.dp).clip(CircleShape).background(color))
         }
     }
 }
@@ -295,8 +295,9 @@ private fun ScaleChart(results: List<ScaleDrill.NoteResult>, tol: Float, modifie
             drawLine(color, Offset(x, mid), Offset(x, y), (slot * 0.55f), StrokeCap.Butt)
             val t = measurer.measure(Music.name(r.midi), label)
             drawText(t, topLeft = Offset(x - t.size.width / 2, h + 2.dp.toPx()))
-            val vt = measurer.measure(r.meanCents.roundToInt().toString(), value)
-            val vy = if (v >= 0) y - vt.size.height - 1.dp.toPx() else y + 1.dp.toPx()
+            val rounded = r.meanCents.roundToInt()
+            val vt = measurer.measure(Music.signed(rounded.toDouble()), value)
+            val vy = if (rounded >= 0) y - vt.size.height - 1.dp.toPx() else y + 1.dp.toPx()
             drawText(vt, topLeft = Offset(x - vt.size.width / 2, vy.coerceIn(0f, h - vt.size.height)))
         }
     }

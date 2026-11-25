@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -296,8 +297,9 @@ fun SkinEditor(c: TunerController, entry: Assets.SkinEntry, onClose: () -> Unit)
     var dragging by remember { mutableStateOf<String?>(null) }
     val bmp = rememberSkinBitmap(c.assets, entry)
 
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Column(Modifier.fillMaxSize().background(Palette.Bg).padding(16.dp)) {
+    // Full screen, drawn edge to edge; systemBarsPadding keeps the buttons above the nav bar.
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        Column(Modifier.fillMaxSize().background(Palette.Bg).systemBarsPadding().padding(16.dp)) {
             Text("Line up the holes", color = Palette.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text("Drag each circle to where that hole is on your ocarina. Reset puts them back.",
                 color = Palette.TextDim, fontSize = 13.sp)
@@ -373,6 +375,8 @@ fun DebugOverlay(c: TunerController, modifier: Modifier) {
         ) {
             Text("latency ", color = Color(0xFF9A9A9A), fontSize = 11.sp)
             Text(total?.let { "≈${f1(it)} ms" } ?: "…", color = totalColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.weight(1f))
+            Text("tap for details", color = Color(0xFF6F6F6F), fontSize = 11.sp)
             Box(Modifier.size(28.dp).clickable { c.updateShowDebug(false) }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Close, "Hide debug", tint = Color(0xFF9A9A9A), modifier = Modifier.size(16.dp))
             }
@@ -380,7 +384,7 @@ fun DebugOverlay(c: TunerController, modifier: Modifier) {
         return
     }
     Column(
-        modifier.width(220.dp).clip(shape).background(Color(0xF0000000)).border(1.dp, Palette.Stroke, shape)
+        modifier.clip(shape).background(Color(0xF0000000)).border(1.dp, Palette.Stroke, shape)
             .clickable { expanded = false }.padding(10.dp),
     ) {
         @Composable

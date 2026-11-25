@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,7 +41,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // The app is always dark, so always use light status and navigation bar icons.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         requestHighestRefreshRate()
         // Keep the screen on while the tuner is open (it is always listening while visible).
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
