@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -297,9 +296,13 @@ fun SkinEditor(c: TunerController, entry: Assets.SkinEntry, onClose: () -> Unit)
     var dragging by remember { mutableStateOf<String?>(null) }
     val bmp = rememberSkinBitmap(c.assets, entry)
 
-    // Full screen, drawn edge to edge; systemBarsPadding keeps the buttons above the nav bar.
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Column(Modifier.fillMaxSize().background(Palette.Bg).systemBarsPadding().padding(16.dp)) {
+    // A wide card sized to its content. (A fillMaxSize dialog is measured against the whole
+    // screen on Compose 1.7 while its window stops at the nav bar, which hid the buttons.)
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp).clip(RoundedCornerShape(24.dp))
+                .background(Palette.Bg).border(1.dp, Palette.Stroke, RoundedCornerShape(24.dp)).padding(16.dp),
+        ) {
             Text("Line up the holes", color = Palette.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text("Drag each circle to where that hole is on your ocarina. Reset puts them back.",
                 color = Palette.TextDim, fontSize = 13.sp)
@@ -341,7 +344,7 @@ fun SkinEditor(c: TunerController, entry: Assets.SkinEntry, onClose: () -> Unit)
             Spacer(Modifier.height(16.dp))
             Text("Hole size", color = Palette.Text)
             Slider(sizeScale, { sizeScale = it }, valueRange = 0.6f..1.6f)
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { holes.clear(); holes.putAll(original); sizeScale = 1f }) { Text("Reset") }
                 if (entry.user) TextButton(onClick = { c.deleteUserSkin(entry); onClose() }) { Text("Delete", color = Palette.Sharp) }
