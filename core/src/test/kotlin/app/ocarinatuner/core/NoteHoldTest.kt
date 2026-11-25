@@ -45,6 +45,27 @@ class NoteHoldTest {
         assertTrue(!h.held.isNaN())
     }
 
+    @Test fun shortLegatoLastNoteIsShown() {
+        val h = NoteHold()
+        val t = h.play(0, 500) { 69.0 }
+        h.play(t, 90) { 72.0 } // C5 straight after A4, no gap, only 90 ms
+        assertEquals(72.0, h.release(), 1e-9)
+    }
+
+    @Test fun legatoSqueakAtTheEndKeepsTheNoteBeforeIt() {
+        val h = NoteHold()
+        val t = h.play(0, 500) { 69.0 }
+        h.play(t, 40) { 88.0 } // squeak, no gap
+        assertEquals(69.0, h.release(), 1e-9)
+    }
+
+    @Test fun wobbleNearANoteBoundaryStaysOneNote() {
+        val h = NoteHold()
+        // C#5 with a wide 5 Hz wobble of +-45 cents: still one note, held near its centre.
+        h.play(0, 600) { i -> 73.0 + 0.45 * kotlin.math.sin(2 * Math.PI * 5.0 * i * frameNs / 1e9) }
+        assertEquals(73.0, h.release(), 0.15)
+    }
+
     @Test fun signedNeverShowsMinusZero() {
         assertEquals("0.0", Music.signed(-0.04, 1))
         assertEquals("0", Music.signed(-0.4))

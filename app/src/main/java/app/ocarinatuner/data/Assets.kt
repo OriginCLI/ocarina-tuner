@@ -78,13 +78,19 @@ class Assets(private val context: Context) {
         userSkinRoot.listFiles()?.sortedBy { it.lastModified() }?.forEach { dir ->
             val f = File(dir, "skin.json")
             if (f.exists()) try {
-                out += SkinEntry(skinJson.decodeFromString(Skin.serializer(), f.readText()), dir.absolutePath, user = true)
+                val skin = skinJson.decodeFromString(Skin.serializer(), f.readText())
+                // The auto-placed holes from import, so Reset still works after edits.
+                val auto = File(dir, AUTO_HOLES).takeIf { it.exists() }?.let {
+                    try { skinJson.decodeFromString(holesSerializer, it.readText()) } catch (e: Exception) { null }
+                }
+                out += SkinEntry(skin, dir.absolutePath, user = true, defaultHoles = auto ?: skin.holes)
             } catch (e: Exception) { /* skip broken skin */ }
         }
         return out to default
     }
 
     private val skinJson = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val AUTO_HOLES = "auto_holes.json"
 
     /**
      * Imports a hole-free ocarina picture (PNG/WebP with transparency works best): crops it to
@@ -119,6 +125,7 @@ class Assets(private val context: Context) {
         File(dir, "image.png").outputStream().use { img.compress(Bitmap.CompressFormat.PNG, 100, it) }
         val skin = Skin(id, name.ifBlank { "My ocarina" }, "image.png", w.toFloat() / h, "user", 1000, holes)
         File(dir, "skin.json").writeText(skinJson.encodeToString(Skin.serializer(), skin))
+        File(dir, AUTO_HOLES).writeText(skinJson.encodeToString(holesSerializer, holes))
         return SkinEntry(skin, dir.absolutePath, user = true)
     }
 
