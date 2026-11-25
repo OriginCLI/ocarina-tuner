@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var updater: Updater
     private var hasMic by mutableStateOf(false)
     private var toneReceiver: BroadcastReceiver? = null
+    private val toneStop = android.os.Handler(android.os.Looper.getMainLooper())
 
     private val micRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         hasMic = granted
@@ -87,8 +88,8 @@ class MainActivity : ComponentActivity() {
      * Debug builds only: lets a test (e.g. on an emulator, which has no real mic) play a tone
      * into the engine.
      *   adb shell am broadcast -a app.ocarinatuner.TEST_TONE -p app.ocarinatuner --es note A4
-     * Optional extras: --ef cents -12, --ef db -20 (RMS dBFS, default -20), --ef hz 452.
-     * --es note off stops the tone.
+     * Optional extras: --ef cents -12, --ef db -20 (RMS dBFS, default -20), --ef hz 452,
+     * --ei ms 40 (stop by itself after that long, for blips). --es note off stops the tone.
      */
     private fun registerTestTone() {
         val r = object : BroadcastReceiver() {
@@ -103,7 +104,10 @@ class MainActivity : ComponentActivity() {
                         ?: run { Log.w(TONE_TAG, "unknown note '$note'"); return }
                 }
                 val hz = base?.let { it * 2.0.pow(cents / 1200.0) }?.toFloat() ?: 0f
+                toneStop.removeCallbacksAndMessages(null)
                 NativeEngine.setTestTone(hz, db)
+                val ms = i.getIntExtra("ms", 0)
+                if (hz > 0 && ms > 0) toneStop.postDelayed({ NativeEngine.setTestTone(0f, 0f) }, ms.toLong())
                 Log.i(TONE_TAG, if (hz > 0) String.format(Locale.US, "tone %s %.2f Hz (%+.1f cents) at %.0f dB", note ?: "", hz, cents, db) else "tone off")
             }
         }
